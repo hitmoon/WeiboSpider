@@ -122,6 +122,20 @@ class WeiboSpider(Spider):
         tree_node = etree.HTML(response.body)
         tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
         for tweet_node in tweet_nodes:
+            # 判断时间，太久远就不再处理
+            create_time_info_node = tweet_node.xpath('.//span[@class="ct"]')[-1]
+            create_time_info = create_time_info_node.xpath('string(.)')
+            if "来自" in create_time_info:
+                create_time = time_fix(create_time_info.split('来自')[0].strip())
+                create_tool = create_time_info.split('来自')[1].strip()
+            else:
+                create_time = time_fix(create_time_info.strip())
+
+            year = create_time.split('-')[0]
+            if int(year) < 2017:
+                print("tweet create time: %s is old then 2017, skip ..."% create_time);
+                break;
+
             try:
                 tweet_item = TweetsItem()
                 tweet_item['crawl_time'] = int(time.time())
@@ -131,13 +145,11 @@ class WeiboSpider(Spider):
                                                                            user_tweet_id.group(1))
                 tweet_item['user_id'] = user_tweet_id.group(2)
                 tweet_item['_id'] = '{}_{}'.format(user_tweet_id.group(2), user_tweet_id.group(1))
-                create_time_info_node = tweet_node.xpath('.//span[@class="ct"]')[-1]
-                create_time_info = create_time_info_node.xpath('string(.)')
                 if "来自" in create_time_info:
-                    tweet_item['created_at'] = time_fix(create_time_info.split('来自')[0].strip())
-                    tweet_item['tool'] = create_time_info.split('来自')[1].strip()
+                    tweet_item['created_at'] = create_time
+                    tweet_item['tool'] = create_tool
                 else:
-                    tweet_item['created_at'] = time_fix(create_time_info.strip())
+                    tweet_item['created_at'] = create_time
 
                 like_num = tweet_node.xpath('.//a[contains(text(),"赞[")]/text()')[-1]
                 tweet_item['like_num'] = int(re.search('\d+', like_num).group())
@@ -182,8 +194,9 @@ class WeiboSpider(Spider):
                     yield tweet_item
 
                 # 抓取该微博的评论信息
-                comment_url = self.base_url + '/comment/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1'
-                yield Request(url=comment_url, callback=self.parse_comment, meta={'weibo_url': tweet_item['weibo_url']})
+                # 暂时不抓取评论
+                # comment_url = self.base_url + '/comment/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1'
+                # yield Request(url=comment_url, callback=self.parse_comment, meta={'weibo_url': tweet_item['weibo_url']})
 
             except Exception as e:
                 self.logger.error(e)
