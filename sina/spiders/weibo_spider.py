@@ -99,6 +99,8 @@ class WeiboSpider(Spider):
                       meta=dict(total=1)
                         )
 
+        """
+        暂时不抓取关注和粉丝
         # 获取关注列表
         yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
                       callback=self.parse_follow,
@@ -107,6 +109,7 @@ class WeiboSpider(Spider):
         yield Request(url=self.base_url + '/{}/fans?page=1'.format(information_item['_id']),
                       callback=self.parse_fans,
                       dont_filter=True)
+        """
 
     def parse_tweet(self, response):
         if response.url.endswith('page=1'):
