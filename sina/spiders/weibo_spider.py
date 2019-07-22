@@ -21,10 +21,10 @@ class WeiboSpider(Spider):
             '1916880571',  #丰田大叔
             '1401527553',  #TK
             '1627825392',  #互联网那些事
-            '1640571365',  # 罗永浩
+            '1640571365',  #罗永浩
             '2093492691',  #程序员的那些事
-            '1623886424',  # 新浪电影
-            '2803301701',  # 人民日报
+            '1623886424',  #新浪电影
+            '2803301701',  #人民日报
         ]
         for uid in start_uids:
             yield Request(url="https://weibo.cn/%s/info" % uid, callback=self.parse_information)
@@ -95,7 +95,9 @@ class WeiboSpider(Spider):
         # 获取该用户微博
         yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
                       callback=self.parse_tweet,
-                      priority=1)
+                      priority=1,
+                      meta=dict(total=1)
+                        )
 
         # 获取关注列表
         yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
@@ -110,17 +112,30 @@ class WeiboSpider(Spider):
         if response.url.endswith('page=1'):
             # 如果是第1页，一次性获取后面的所有页
             all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
+
+            if all_page:
+                all_page = all_page.group(1)
+                all_page = int(all_page)
+                response.meta['total'] = all_page
+
+            '''
             if all_page:
                 all_page = all_page.group(1)
                 all_page = int(all_page)
                 for page_num in range(2, all_page + 1):
                     page_url = response.url.replace('page=1', 'page={}'.format(page_num))
                     yield Request(page_url, self.parse_tweet, dont_filter=True, meta=response.meta)
+            '''
+        assign_index = response.url.rfind('=')
+        current_page = response.url[assign_index + 1:]
         """
         解析本页的数据
         """
         tree_node = etree.HTML(response.body)
         tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
+
+        request_next = True
+
         for tweet_node in tweet_nodes:
             # 判断时间，太久远就不再处理
             create_time_info_node = tweet_node.xpath('.//span[@class="ct"]')[-1]
@@ -133,7 +148,8 @@ class WeiboSpider(Spider):
 
             year = create_time.split('-')[0]
             if int(year) < 2017:
-                print("tweet create time: %s is old then 2017, skip ..."% create_time);
+                print("tweet create time: %s is old then 2017, stoping ..."% create_time);
+                request_next = False
                 break;
 
             try:
@@ -200,6 +216,13 @@ class WeiboSpider(Spider):
 
             except Exception as e:
                 self.logger.error(e)
+
+        if request_next:
+            # request next page
+            if int(current_page) < response.meta['total']:
+                page_url = response.url.replace('page={}'.format(current_page), 'page={}'.format(int(current_page) + 1))
+                yield Request(page_url, self.parse_tweet, dont_filter=True, meta=response.meta)
+
 
     def parse_all_content(self, response):
         # 有阅读全文的情况，获取全文
