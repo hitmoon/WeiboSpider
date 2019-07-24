@@ -17,6 +17,7 @@ class WeiboSpider(Spider):
     base_url = "https://weibo.cn"
 
     def start_requests(self):
+        """
         start_uids = [
             '1916880571',  #丰田大叔
             '1401527553',  #TK
@@ -28,6 +29,8 @@ class WeiboSpider(Spider):
         ]
         for uid in start_uids:
             yield Request(url="https://weibo.cn/%s/info" % uid, callback=self.parse_information)
+        """
+        yield Request(url="https://weibo.cn/?page=1", callback=self.parse_tweet, priority=1,meta=dict(total=1))
 
     def parse_information(self, response):
         """ 抓取个人信息 """
@@ -150,8 +153,8 @@ class WeiboSpider(Spider):
                 create_time = time_fix(create_time_info.strip())
 
             year = create_time.split('-')[0]
-            if int(year) < 2017:
-                print("tweet create time: %s is old then 2017, stoping ..."% create_time);
+            if int(year) < 2019:
+                print("tweet create time: %s is old then 2019, stoping ..."% create_time);
                 request_next = False
                 break;
 
@@ -159,6 +162,8 @@ class WeiboSpider(Spider):
                 tweet_item = TweetsItem()
                 tweet_item['crawl_time'] = int(time.time())
                 tweet_repost_url = tweet_node.xpath('.//a[contains(text(),"转发[")]/@href')[0]
+                user_nick_name = tweet_node.xpath('.//a[@class="nk"]/text()')[0]
+                tweet_item['nick_name'] = user_nick_name
                 user_tweet_id = re.search(r'/repost/(.*?)\?uid=(\d+)', tweet_repost_url)
                 tweet_item['weibo_url'] = 'https://weibo.com/{}/{}'.format(user_tweet_id.group(2),
                                                                            user_tweet_id.group(1))
