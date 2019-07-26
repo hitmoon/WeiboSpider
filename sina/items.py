@@ -5,7 +5,6 @@ from scrapy import Item, Field
 class TweetsItem(Item):
     """ 微博信息 """
     _id = Field()  # 微博id
-    nick_name = Field()  # 微博昵称
     weibo_url = Field()  # 微博URL
     created_at = Field()  # 微博发表时间
     like_num = Field()  # 点赞数
