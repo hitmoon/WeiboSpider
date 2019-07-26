@@ -167,6 +167,8 @@ class WeiboSpider(Spider):
                 tweet_item = TweetsItem()
                 tweet_item['crawl_time'] = int(time.time())
                 tweet_repost_url = tweet_node.xpath('.//a[contains(text(),"转发[")]/@href')[0]
+                user_nick_name = tweet_node.xpath('.//a[@class="nk"]/text()')[0]
+                tweet_item['nick_name'] = user_nick_name
                 user_tweet_id = re.search(r'/repost/(.*?)\?uid=(\d+)', tweet_repost_url)
                 tweet_item['weibo_url'] = 'https://weibo.com/{}/{}'.format(user_tweet_id.group(2),
                                                                            user_tweet_id.group(1))
