@@ -158,8 +158,8 @@ class WeiboSpider(Spider):
                 create_time = time_fix(create_time_info.strip())
 
             year = create_time.split('-')[0]
-            if int(year) < 2017:
-                print("tweet create time: %s is old then 2017, stoping ..."% create_time);
+            if int(year) < 2019:
+                print("tweet create time: %s is old then 2019, stoping ..."% create_time);
                 request_next = False
                 break;
 
