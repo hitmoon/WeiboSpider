@@ -9,12 +9,15 @@ from scrapy.http import Request
 from scrapy.utils.project import get_project_settings
 from sina.items import TweetsItem, InformationItem, RelationshipsItem, CommentItem
 from sina.spiders.utils import time_fix, extract_weibo_content, extract_comment_content
+from sina.settings import LAST_TWEET_FROM_NOW_IN_DAYS
+import datetime
 import time
 
 
 class WeiboSpider(Spider):
     name = "weibo_spider"
     base_url = "https://weibo.cn"
+    time_now = datetime.datetime.now()
 
     def start_requests(self):
         '''
@@ -148,7 +151,7 @@ class WeiboSpider(Spider):
         request_next = True
 
         for tweet_node in tweet_nodes:
-            # 判断时间，太久远就不再处理
+            # 判断时间，超过设定时间就不再处理
             create_time_info_node = tweet_node.xpath('.//span[@class="ct"]')[-1]
             create_time_info = create_time_info_node.xpath('string(.)')
             if "来自" in create_time_info:
@@ -157,9 +160,10 @@ class WeiboSpider(Spider):
             else:
                 create_time = time_fix(create_time_info.strip())
 
-            year = create_time.split('-')[0]
-            if int(year) < 2019:
-                print("tweet create time: %s is old then 2019, stoping ..."% create_time);
+            tweet_time = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M")
+            delta_day = self.time_now - tweet_time
+            if delta_day.days >= LAST_TWEET_FROM_NOW_IN_DAYS:
+                print("tweet is %s days old, we can stoping "% LAST_TWEET_FROM_NOW_IN_DAYS)
                 request_next = False
                 break;
 
